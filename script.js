@@ -1,3 +1,8 @@
+/**
+ * This file runs the script containg the game functionality and logic.
+ * @author David Lovato
+ */
+
 var origBoard;
 const huPlayer = 'O';
 const aiPlayer = 'X';
@@ -32,5 +37,12 @@ function turnClick(square) {
 function turn(squareId, player) {
     origBoard[squareId] = player;
     document.getElementById(squareId).innerText = player;
-     
+    let gameWon = checkWin(origBoard, player);
+    if (gameWon) {
+        gameOver(gameWon);
+    }
+}
+
+function checkWin(board, player) {
+
 }
