@@ -30,7 +30,16 @@ function startGame() {
 }
 
 function turnClick(square) {
-    turn(square.target.id, huPlayer);
+    if (typeof origBoard[square.target.id] == 'number') {
+        turn(square.target.id, huPlayer);
+        if (!checkTie() && !checkWin(origBoard, huPlayer)) {
+            if (document.getElementById("hard").checked) {
+                turn(minimax(origBoard, aiPlayer).index, aiPlayer);
+            } else {
+                turn(bestSpot(), aiPlayer);
+            }
+        }
+    }
 }
 
 function turn(squareId, player) {
@@ -43,10 +52,15 @@ function turn(squareId, player) {
 }
 
 function checkWin(board, player) {
+    /// Finds all the places on the board that have already been played
+    /// Basically finds every index the player has played in
     let plays = board.reduce((a, e, i) => (e === player) ? a.concat(i) : a, []);
     let gameWon = null;
     for (let [index, win] of winCombos.entries()) {
+        /// win.every: goes through each element of the array at that index of the winCombos
+        /// plays.index just checks if the player has played in every spot
         if (win.every(elem => plays.indexOf(elem) > -1)) {
+            /// index = winning combination
             gameWon = {index: index, player: player};
             break;
         }
@@ -62,4 +76,95 @@ function gameOver(gameWon) {
     for (var i = 0; i < cells.length; i++) {
         cells[i].removeEventListener('click', turnClick, false);
     }
+    declareWinner(gameWon.player == huPlayer ? "You win!" : "You lose.");
+}
+
+function declareWinner(who) {
+	document.querySelector(".endgame").style.display = "block";
+	document.querySelector(".endgame .text").innerText = who;
+}
+
+/**
+ * This function is for the 'easy' setting of the computer, which plays randomly.
+ */
+function bestSpot() {
+    var emptySquares = [];
+    for (var i = 0; i < cells.length; i++) {
+        if (typeof origBoard[i] == 'number') {
+            // empty slot
+            emptySquares.push(i);
+        }
+    }
+    // now the array is filled with empty slots, we just need to choose one at random
+    // gives us a random index
+    var random = Math.floor(Math.random() * emptySquares.length);
+    return emptySquares[random];
+}
+
+function checkTie() {
+    var emptySquares = origBoard.filter(s => typeof s == 'number');
+    if (emptySquares.length == 0) {
+        for (var i = 0; i < cells.length; i++) {
+			cells[i].style.backgroundColor = "green";
+			cells[i].removeEventListener('click', turnClick, false);
+		}
+		declareWinner("Tie Game!")
+		return true;
+	}
+	return false;
+}
+
+function emptySquares() {
+    return origBoard.filter(s => typeof s == 'number');
+}
+
+function minimax(newBoard, player) {
+	var availSpots = emptySquares();
+
+	if (checkWin(newBoard, huPlayer)) {
+		return {score: -10};
+	} else if (checkWin(newBoard, aiPlayer)) {
+		return {score: 10};
+	} else if (availSpots.length === 0) {
+		return {score: 0};
+	}
+	var moves = [];
+	for (var i = 0; i < availSpots.length; i++) {
+		var move = {};
+		move.index = newBoard[availSpots[i]];
+		newBoard[availSpots[i]] = player;
+
+		if (player == aiPlayer) {
+			var result = minimax(newBoard, huPlayer);
+			move.score = result.score;
+		} else {
+			var result = minimax(newBoard, aiPlayer);
+			move.score = result.score;
+		}
+
+		newBoard[availSpots[i]] = move.index;
+
+		moves.push(move);
+	}
+
+	var bestMove;
+	if(player === aiPlayer) {
+		var bestScore = -10000;
+		for(var i = 0; i < moves.length; i++) {
+			if (moves[i].score > bestScore) {
+				bestScore = moves[i].score;
+				bestMove = i;
+			}
+		}
+	} else {
+		var bestScore = 10000;
+		for(var i = 0; i < moves.length; i++) {
+			if (moves[i].score < bestScore) {
+				bestScore = moves[i].score;
+				bestMove = i;
+			}
+		}
+	}
+
+	return moves[bestMove];
 }
